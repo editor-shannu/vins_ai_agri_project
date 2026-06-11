@@ -51,14 +51,14 @@ if os.path.exists("model_assets.pkl"):
         pass
 
 # 2. Main Filters
-st.sidebar.title("🌾 Filters")
-districts = ["All"] + sorted(df["District_Name"].unique().tolist())
-sel_district = st.sidebar.selectbox("District", districts)
-years = ["All"] + sorted(df["Crop_Year"].unique().tolist())
-sel_year = st.sidebar.selectbox("Year", years)
-seasons = ["All"] + sorted(df["Season"].unique().tolist())
-sel_season = st.sidebar.selectbox("Season", seasons)
-sel_risk = st.sidebar.selectbox("Risk Level", ["All", "High", "Medium", "Low"])
+with st.sidebar.expander("🔍 Filter Historical Data", expanded=False):
+    districts = ["All"] + sorted(df["District_Name"].unique().tolist())
+    sel_district = st.selectbox("District", districts)
+    years = ["All"] + sorted(df["Crop_Year"].unique().tolist())
+    sel_year = st.selectbox("Year", years)
+    seasons = ["All"] + sorted(df["Season"].unique().tolist())
+    sel_season = st.selectbox("Season", seasons)
+    sel_risk = st.selectbox("Risk Level", ["All", "High", "Medium", "Low"])
 
 filtered = df.copy()
 if sel_district != "All":
