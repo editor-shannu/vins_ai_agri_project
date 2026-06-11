@@ -13,26 +13,14 @@ st.set_page_config(
     layout="wide"
 )
 
-# Helper function to run the ML pipeline dynamically
-def trigger_pipeline_run():
-    with st.spinner("Running machine learning pipeline... This might take 10-15 seconds."):
-        try:
-            # Dynamically import and run the pipeline
-            import AP_Crop_Switching
-            # Force reload the module in case it changed or needs re-execution
-            import importlib
-            importlib.reload(AP_Crop_Switching)
-            AP_Crop_Switching.run_pipeline()
-            st.success("Pipeline executed successfully! Data and models updated.")
-            st.cache_data.clear()
-            st.rerun()
-        except Exception as e:
-            st.error(f"Error executing pipeline: {e}")
-
 @st.cache_data
 def load_data():
-    path = "dashboard_output.csv"
-    if not os.path.exists(path):
+    csv_path = "dashboard_output.csv"
+    model_path = "model_assets.pkl"
+    json_path = "model_performance.json"
+    
+    # Auto-run pipeline if any core asset is missing
+    if not os.path.exists(csv_path) or not os.path.exists(model_path) or not os.path.exists(json_path):
         with st.spinner("Initializing: Processing datasets and training models in the background..."):
             try:
                 import AP_Crop_Switching
@@ -40,43 +28,7 @@ def load_data():
             except Exception as e:
                 st.error(f"Error executing backend pipeline on startup: {e}")
                 st.stop()
-    return pd.read_csv(path)
-
-# 1. Dataset Management / Upload in Sidebar
-st.sidebar.title("⚙️ Dataset Management")
-with st.sidebar.expander("Update / Upload Datasets"):
-    st.write("Upload new GoI csv files to recalculate predictions and retrain models.")
-    
-    # File uploaders
-    crop_file = st.file_uploader("Upload Crop Production CSV", type=["csv"], key="crop")
-    rain_annual_file = st.file_uploader("Upload Annual Rainfall CSV", type=["csv"], key="annual")
-    rain_dist_file = st.file_uploader("Upload District Normal Rainfall CSV", type=["csv"], key="dist")
-    
-    # Save files if uploaded
-    if st.button("⚡ Run ML Pipeline"):
-        saved_any = False
-        os.makedirs("datasets", exist_ok=True)
-        
-        if crop_file is not None:
-            with open("datasets/crop_production.csv", "wb") as f:
-                f.write(crop_file.getbuffer())
-            st.info("Saved crop_production.csv")
-            saved_any = True
-            
-        if rain_annual_file is not None:
-            with open("datasets/rainfall_in_india_1901-2015.csv", "wb") as f:
-                f.write(rain_annual_file.getbuffer())
-            st.info("Saved rainfall_in_india_1901-2015.csv")
-            saved_any = True
-            
-        if rain_dist_file is not None:
-            with open("datasets/districtwise_rainfall_normal.csv", "wb") as f:
-                f.write(rain_dist_file.getbuffer())
-            st.info("Saved districtwise_rainfall_normal.csv")
-            saved_any = True
-            
-        # Run the pipeline
-        trigger_pipeline_run()
+    return pd.read_csv(csv_path)
 
 df = load_data()
 
