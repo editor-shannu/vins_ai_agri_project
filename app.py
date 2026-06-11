@@ -114,7 +114,7 @@ with st.sidebar:
     sel_risk     = st.selectbox("Risk Level",["All","High","Medium","Low"])
 
     st.markdown("---")
-    if st.button("⚡ Re-run ML Pipeline", use_container_width=True):
+    if st.button("⚡ Re-run ML Pipeline", width="stretch"):
         with st.spinner("Re-running..."):
             try:
                 import importlib, AP_Crop_Switching
@@ -293,7 +293,7 @@ with tab1:
                 height=180, margin=dict(l=20,r=20,t=20,b=10),
                 paper_bgcolor="rgba(0,0,0,0)", font=dict(color="#c8d0de")
             )
-            st.plotly_chart(fig_gauge, use_container_width=True)
+            st.plotly_chart(fig_gauge, width="stretch")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB 2 — OVERVIEW
@@ -309,7 +309,7 @@ with tab2:
         fig.update_traces(line_width=2.5, marker_size=7)
         fig.update_layout(**PLOT_THEME, height=280,
                           xaxis_title="Year", yaxis_title="Switches")
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
     with r1c2:
         st.markdown('<p class="section-title">Risk Level Distribution</p>', unsafe_allow_html=True)
@@ -321,7 +321,7 @@ with tab2:
         fig.update_traces(textposition="outside", textfont_size=12)
         fig.update_layout(**PLOT_THEME, height=280, showlegend=True,
                           legend=dict(orientation="v", x=1.05))
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
     st.markdown('<p class="section-title">Most Switched-Away Crops (Top 10)</p>', unsafe_allow_html=True)
     switched = filtered[filtered["Switched"] == 1]["Crop"].value_counts().head(10).reset_index()
@@ -333,7 +333,7 @@ with tab2:
                      color="Count", color_continuous_scale="Blues")
         fig.update_layout(**PLOT_THEME, height=320, coloraxis_showscale=False)
         fig.update_yaxes(autorange="reversed")
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB 3 — DISTRICT ANALYSIS
@@ -352,7 +352,7 @@ with tab3:
     fig.update_layout(**PLOT_THEME, height=300,
                       xaxis_title="", yaxis_title="Total Switches",
                       coloraxis_colorbar=dict(title="Switch Rate", tickformat=".0%"))
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
     d1, d2 = st.columns(2, gap="medium")
 
@@ -366,7 +366,7 @@ with tab3:
         fig.update_layout(**PLOT_THEME, height=280,
                           xaxis_title="", yaxis_title="Annual Rainfall (mm)",
                           showlegend=False)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
     with d2:
         st.markdown('<p class="section-title">Top 10 Highest-Risk Records</p>', unsafe_allow_html=True)
@@ -379,7 +379,7 @@ with tab3:
                           xaxis_title="Switch Probability", yaxis_title="",
                           coloraxis_showscale=False)
         fig.update_yaxes(autorange="reversed")
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB 4 — MODEL INSIGHTS
@@ -412,7 +412,7 @@ with tab4:
         fig.update_layout(**PLOT_THEME, height=300, barmode="group",
                           legend=dict(orientation="h", y=1.12))
         fig.update_yaxes(range=[0,1])
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
     with m2:
         st.markdown('<p class="section-title">Switch Probability Distribution</p>', unsafe_allow_html=True)
@@ -424,7 +424,7 @@ with tab4:
                       annotation_text="High (0.7)", annotation_font_color="#ff6b6b")
         fig.update_layout(**PLOT_THEME, height=300,
                           xaxis_title="Probability", yaxis_title="Count")
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
     st.markdown('<p class="section-title">Feature Importance — Gradient Boosting</p>', unsafe_allow_html=True)
     if metrics and "importances" in metrics:
@@ -445,7 +445,7 @@ with tab4:
         height=400,
         coloraxis_showscale=False
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
     # Key insights banner if available
     if metrics and "insights" in metrics:
@@ -482,9 +482,9 @@ with tab5:
 
     styled = (filtered[display_cols]
               .sort_values("Switch_Prob", ascending=False)
-              .style.applymap(colour_risk, subset=["Risk_Level"])
+              .style.map(colour_risk, subset=["Risk_Level"])
               .format({"Switch_Prob": "{:.3f}"}))
-    st.dataframe(styled, use_container_width=True, height=500)
+    st.dataframe(styled, width="stretch", height=500)
 
     csv_bytes = filtered[display_cols].to_csv(index=False).encode("utf-8")
     st.download_button("⬇ Download CSV", csv_bytes, "filtered_data.csv", "text/csv")
