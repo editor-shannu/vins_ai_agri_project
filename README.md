@@ -113,6 +113,23 @@ This project successfully built a Decision Intelligence pipeline for crop switch
 
 ---
 
+## 9. Dashboard Walkthrough & Gallery
+Below are screenshots capturing the primary features of the running dashboard:
+
+### A) Interactive Decision Simulator (Farmer Tool)
+Allows users to select a district and season. The application dynamically queries the historical data to populate the average area and production values as defaults. When a user runs the simulation, the backend model processes inputs through custom agricultural rules (drought and excess rainfall guardrails) to output real-time risk levels and recommendations.
+![Interactive Decision Simulator](screenshots/1_decision_simulator.png)
+
+### B) Historical Overview Dashboard
+Visualizes historical crop switching frequencies over time, risk level splits, and the most common crops that farmers have switched away from in Andhra Pradesh.
+![Overview Dashboard](screenshots/2_overview_dashboard.png)
+
+### C) District Analysis & Volatility
+Shows district-level switching counts, boxplot analyses correlating annual rainfall with crop switching behavior, and tables ranking the highest-risk spatial-temporal combinations.
+![District Analysis](screenshots/3_district_analysis.png)
+
+---
+
 ## Appendix
 ### Machine Learning Performance Comparison:
 
