@@ -69,5 +69,6 @@ plots/
 !datasets/
 !datasets/*.csv
 
-# Ignore generated model performance metrics
+# Ignore generated model performance metrics and assets
 model_performance.json
+model_assets.pkl

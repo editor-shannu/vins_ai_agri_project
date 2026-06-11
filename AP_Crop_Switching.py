@@ -406,6 +406,18 @@ def run_pipeline():
     with open("model_performance.json", "w") as f:
         json.dump(performance_data, f, indent=4)
 
+    # Save model assets for real-time interactive predictions
+    import pickle
+    model_assets = {
+        'model': rf_model,
+        'le_district': le1,
+        'le_season': le2,
+        'le_crop': le3,
+        'features': features
+    }
+    with open("model_assets.pkl", "wb") as f:
+        pickle.dump(model_assets, f)
+
     # ==========================================
     # Section 9 — Export Dashboard CSV
     # ==========================================
