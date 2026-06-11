@@ -181,6 +181,17 @@ with tab1:
             # 3. Run prediction
             prob = float(model.predict_proba(sim_df[features])[0][1])
             
+            # Apply Expert Heuristic Guardrails (Decision Intelligence Rules)
+            # A) Severe drought override (Deficit > 30% from normal average)
+            if sim_rainfall < 0.7 * normal_rain:
+                prob = max(prob, 0.75)
+            # B) Moderate drought override (Deficit > 15% from normal average)
+            elif sim_rainfall < 0.85 * normal_rain:
+                prob = max(prob, 0.50)
+            # C) Flood / Excess rainfall override (Excess > 40% from normal average)
+            elif sim_rainfall > 1.4 * normal_rain:
+                prob = max(prob, 0.55)
+            
             # 4. Display card based on risk level
             if prob > 0.7:
                 risk_title = "HIGH SWITCHING RISK"
