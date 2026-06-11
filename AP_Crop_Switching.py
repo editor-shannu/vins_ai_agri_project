@@ -223,9 +223,27 @@ def run_pipeline():
     model_df['Season_enc']   = le2.fit_transform(model_df['Season'])
     model_df['Crop_enc']     = le3.fit_transform(model_df['Crop'])
 
-    features = ['Area', 'Production', 'Yield',
-                'annual_rainfall', 'rainfall_deviation',
-                'District_enc', 'Season_enc']
+    # Enhanced features: log transforms, lag features, interaction terms
+    model_df['Area_log']       = np.log1p(model_df['Area'])
+    model_df['Production_log'] = np.log1p(model_df['Production'])
+    model_df['Yield_log']      = np.log1p(model_df['Yield'])
+    model_df['Area_x_Rain']    = model_df['Area']  * model_df['annual_rainfall']
+    model_df['Yield_x_Rain']   = model_df['Yield'] * model_df['rainfall_deviation']
+    model_df = model_df.sort_values(['District_Name', 'Season', 'Crop_Year'])
+    model_df['Prev_Area']      = model_df.groupby(['District_Name','Season'])['Area'].shift(1)
+    model_df['Prev_Yield']     = model_df.groupby(['District_Name','Season'])['Yield'].shift(1)
+    model_df['Area_change']    = model_df['Area']  - model_df['Prev_Area']
+    model_df['Yield_change']   = model_df['Yield'] - model_df['Prev_Yield']
+    model_df.dropna(inplace=True)
+
+    features = [
+        'Area', 'Production', 'Yield',
+        'annual_rainfall', 'rainfall_deviation',
+        'District_enc', 'Season_enc',
+        'Area_log', 'Production_log', 'Yield_log',
+        'Area_x_Rain', 'Yield_x_Rain',
+        'Prev_Area', 'Prev_Yield', 'Area_change', 'Yield_change'
+    ]
 
     X_model = model_df[features]
     y_model = model_df['Switched']
@@ -237,15 +255,16 @@ def run_pipeline():
     print("Train size:", len(X_train), "| Test size:", len(X_test))
 
     from sklearn.tree import DecisionTreeClassifier
-    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
     from sklearn.linear_model import LogisticRegression
     from sklearn.neighbors import KNeighborsClassifier
     from sklearn.metrics import accuracy_score, f1_score
 
     models = {
-        'Decision Tree'      : DecisionTreeClassifier(random_state=42),
-        'Random Forest'      : RandomForestClassifier(n_estimators=100, random_state=42),
-        'Logistic Regression': LogisticRegression(max_iter=1000, random_state=42),
+        'Decision Tree'      : DecisionTreeClassifier(random_state=42, class_weight='balanced', max_depth=8),
+        'Random Forest'      : RandomForestClassifier(n_estimators=200, random_state=42, class_weight='balanced'),
+        'Gradient Boosting'  : GradientBoostingClassifier(n_estimators=200, random_state=42),
+        'Logistic Regression': LogisticRegression(max_iter=1000, random_state=42, class_weight='balanced'),
         'KNN'                : KNeighborsClassifier(n_neighbors=5)
     }
 
@@ -255,16 +274,16 @@ def run_pipeline():
         pred   = model.predict(X_test)
         acc    = accuracy_score(y_test, pred)
         f1     = f1_score(y_test, pred, zero_division=0)
-        cv_acc = cross_val_score(model, X_model, y_model, cv=5, scoring='accuracy').mean()
+        cv_acc = cross_val_score(model, X_model, y_model, cv=5, scoring='f1').mean()
         results.append({
             'Model': name,
             'Test Accuracy'       : float(round(acc, 4)),
             'F1 Score'            : float(round(f1,  4)),
-            'CV Accuracy (5-fold)': float(round(cv_acc, 4))
+            'CV F1 (5-fold)': float(round(cv_acc, 4))
         })
         print(f"{name:22s} | Acc: {acc:.4f} | F1: {f1:.4f} | CV: {cv_acc:.4f}")
 
-    results_df = pd.DataFrame(results).sort_values('CV Accuracy (5-fold)', ascending=False)
+    results_df = pd.DataFrame(results).sort_values('CV F1 (5-fold)', ascending=False)
     print("\nModel performance rankings:")
     print(results_df.to_string(index=False))
 
@@ -274,7 +293,7 @@ def run_pipeline():
     w = 0.25
     ax.bar(x - w, results_df['Test Accuracy'],        w, label='Test Accuracy',        color='#3498db')
     ax.bar(x,     results_df['F1 Score'],              w, label='F1 Score',             color='#e74c3c')
-    ax.bar(x + w, results_df['CV Accuracy (5-fold)'], w, label='CV Accuracy (5-fold)', color='#2ecc71')
+    ax.bar(x + w, results_df['CV F1 (5-fold)'], w, label='CV F1 (5-fold)', color='#2ecc71')
     ax.set_xticks(x)
     ax.set_xticklabels(results_df['Model'], rotation=15)
     ax.set_ylim(0, 1.1)
@@ -284,19 +303,22 @@ def run_pipeline():
     plt.savefig('plots/8_model_comparison_bar.png')
     plt.close()
 
-    # Confusion matrix — Random Forest
-    rf_model = models['Random Forest']
+    # Confusion matrix — Gradient Boosting (best model by CV F1)
+    rf_model = models['Gradient Boosting']
     pred_rf  = rf_model.predict(X_test)
 
-    from sklearn.metrics import ConfusionMatrixDisplay
+    from sklearn.metrics import ConfusionMatrixDisplay, classification_report
     fig, ax = plt.subplots(figsize=(6, 5))
     ConfusionMatrixDisplay.from_predictions(
         y_test, pred_rf, display_labels=['No Switch', 'Switched'], cmap='Blues', ax=ax
     )
-    ax.set_title('Random Forest — Confusion Matrix', fontsize=13)
+    ax.set_title('Gradient Boosting — Confusion Matrix', fontsize=13)
     plt.tight_layout()
     plt.savefig('plots/9_rf_confusion_matrix.png')
     plt.close()
+
+    print("\nGradient Boosting — Classification Report:")
+    print(classification_report(y_test, pred_rf, target_names=['No Switch','Switched'], zero_division=0))
 
     # Feature importance
     importance_df = pd.DataFrame({
@@ -317,13 +339,9 @@ def run_pipeline():
     # Section 7 — Farmer Decision Intelligence Dashboard Data Preparation
     # ==========================================
     print("\n--- Section 7: Dashboard Data Preparation ---")
-    dashboard_df = dominant.copy()
-    # Fill in Prev_Crop NaNs to prevent enc errors, then drop them
+    # Use model_df — already has all enhanced features and encodings
+    dashboard_df = model_df.copy()
     dashboard_df['Prev_Crop'] = dashboard_df['Prev_Crop'].fillna('None')
-
-    dashboard_df['District_enc'] = le1.transform(dashboard_df['District_Name'])
-    dashboard_df['Season_enc']   = le2.transform(dashboard_df['Season'])
-    dashboard_df['Crop_enc']     = le3.transform(dashboard_df['Crop'])
 
     dashboard_df['Switch_Prob'] = rf_model.predict_proba(dashboard_df[features])[:, 1]
 
@@ -398,7 +416,7 @@ def run_pipeline():
             "most_stable_district": str(most_stable),
             "most_switched_away_crop": str(most_switched),
             "best_model": str(best_model_row['Model']),
-            "best_model_cv": float(best_model_row['CV Accuracy (5-fold)']),
+            "best_model_cv": float(best_model_row['CV F1 (5-fold)']),
             "top_feature": str(top_feature),
             "high_risk_records_count": int(high_risk_count)
         }
