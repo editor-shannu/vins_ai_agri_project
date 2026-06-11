@@ -65,3 +65,6 @@ venv.bak/
 # Project specific
 plots/
 datasets/
+
+# Allow tracking of generated dashboard data
+!dashboard_output.csv
