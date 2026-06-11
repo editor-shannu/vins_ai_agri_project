@@ -47,7 +47,11 @@ The data pipeline implements the following systematic steps:
    - Calculate `rainfall_deviation` from normal averages.
 3. **Unsupervised Learning:** Apply K-Means clustering to group districts into three distinct risk/volatility clusters.
 4. **Supervised Learning:** Compare Decision Trees, Random Forests, Logistic Regression, and K-Nearest Neighbors using 5-fold cross-validation.
-5. **Dashboard Export:** Save prediction probabilities, risk levels, and recommendations for visualization.
+5. **Hybrid Heuristic Override (Decision Intelligence Guardrails):**
+   - Because standard machine learning models (like Random Forests) cannot extrapolate out-of-distribution dry/wet weather (beyond historical values), we implement expert agricultural rule overrides.
+   - **Severe Drought (>30% deficit):** Automatically overrides to **High Switching Risk** (probability $\ge 75\%$).
+   - **Moderate Drought (>15% deficit):** Automatically overrides to at least **Medium Switching Risk** (probability $\ge 50\%$).
+   - **Flooding/Excess Rainfall (>40% excess):** Automatically overrides to at least **Medium Switching Risk** (probability $\ge 55\%$).
 
 ---
 
@@ -58,6 +62,10 @@ The solution is written purely in **Python** using standard local environment to
 * **Visualization:** `matplotlib`, `seaborn`
 * **Machine Learning:** `scikit-learn` (StandardScaler, LabelEncoder, PCA, KMeans, LogisticRegression, RandomForestClassifier)
 * **Application Framework:** `streamlit`
+
+### Automatic Background Initialization:
+To keep the Git repository clean, generated files (`dashboard_output.csv`, `model_performance.json`, and `model_assets.pkl`) are excluded from version control. When the Streamlit app starts, it checks for these files and automatically runs the pipeline in the background using the raw datasets tracked under the `datasets/` folder.
+
 
 ### How to Run Locally:
 
