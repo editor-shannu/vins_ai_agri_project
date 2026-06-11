@@ -64,7 +64,10 @@ venv.bak/
 
 # Project specific
 plots/
-datasets/
 
-# Allow tracking of generated dashboard data
-!dashboard_output.csv
+# Allow tracking of raw datasets, but ignore generated dashboard data
+!datasets/
+!datasets/*.csv
+
+# Ignore generated model performance metrics
+model_performance.json

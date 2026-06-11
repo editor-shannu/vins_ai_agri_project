@@ -32,8 +32,13 @@ def trigger_pipeline_run():
 def load_data():
     path = "dashboard_output.csv"
     if not os.path.exists(path):
-        st.error("dashboard_output.csv not found. Please upload the datasets and run the ML pipeline below.")
-        st.stop()
+        with st.spinner("Initializing: Processing datasets and training models in the background..."):
+            try:
+                import AP_Crop_Switching
+                AP_Crop_Switching.run_pipeline()
+            except Exception as e:
+                st.error(f"Error executing backend pipeline on startup: {e}")
+                st.stop()
     return pd.read_csv(path)
 
 # 1. Dataset Management / Upload in Sidebar
