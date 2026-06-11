@@ -1,0 +1,68 @@
+{
+    "models": [
+        {
+            "Model": "Decision Tree",
+            "Test Accuracy": 0.7923,
+            "F1 Score": 0.5263,
+            "CV Accuracy (5-fold)": 0.6103
+        },
+        {
+            "Model": "Random Forest",
+            "Test Accuracy": 0.8,
+            "F1 Score": 0.381,
+            "CV Accuracy (5-fold)": 0.7535
+        },
+        {
+            "Model": "Logistic Regression",
+            "Test Accuracy": 0.8,
+            "F1 Score": 0.1875,
+            "CV Accuracy (5-fold)": 0.7874
+        },
+        {
+            "Model": "KNN",
+            "Test Accuracy": 0.7615,
+            "F1 Score": 0.3111,
+            "CV Accuracy (5-fold)": 0.7196
+        }
+    ],
+    "importances": [
+        {
+            "Feature": "Area",
+            "Importance": 0.229185576180897
+        },
+        {
+            "Feature": "Production",
+            "Importance": 0.17766195597512566
+        },
+        {
+            "Feature": "Yield",
+            "Importance": 0.17159077319992622
+        },
+        {
+            "Feature": "rainfall_deviation",
+            "Importance": 0.1261429762425609
+        },
+        {
+            "Feature": "annual_rainfall",
+            "Importance": 0.11074550192652642
+        },
+        {
+            "Feature": "District_enc",
+            "Importance": 0.09605905233190917
+        },
+        {
+            "Feature": "Season_enc",
+            "Importance": 0.08861416414305465
+        }
+    ],
+    "insights": {
+        "overall_switching_rate": 20.058139534883722,
+        "most_volatile_district": "KUDDAPAH",
+        "most_stable_district": "CHITTOOR",
+        "most_switched_away_crop": "Sugarcane",
+        "best_model": "Logistic Regression",
+        "best_model_cv": 0.7874,
+        "top_feature": "Area",
+        "high_risk_records_count": 87
+    }
+}

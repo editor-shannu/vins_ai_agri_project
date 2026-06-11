@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
+import json
 
 st.set_page_config(
     page_title="Farmer Decision Intelligence — AP",
@@ -11,16 +12,78 @@ st.set_page_config(
     layout="wide"
 )
 
+# Helper function to run the ML pipeline dynamically
+def trigger_pipeline_run():
+    with st.spinner("Running machine learning pipeline... This might take 10-15 seconds."):
+        try:
+            # Dynamically import and run the pipeline
+            import AP_Crop_Switching
+            # Force reload the module in case it changed or needs re-execution
+            import importlib
+            importlib.reload(AP_Crop_Switching)
+            AP_Crop_Switching.run_pipeline()
+            st.success("Pipeline executed successfully! Data and models updated.")
+            st.cache_data.clear()
+            st.rerun()
+        except Exception as e:
+            st.error(f"Error executing pipeline: {e}")
+
 @st.cache_data
 def load_data():
     path = "dashboard_output.csv"
     if not os.path.exists(path):
-        st.error("dashboard_output.csv not found. Run the notebook first (Section 9 exports it).")
+        st.error("dashboard_output.csv not found. Please upload the datasets and run the ML pipeline below.")
         st.stop()
     return pd.read_csv(path)
 
+# 1. Dataset Management / Upload in Sidebar
+st.sidebar.title("⚙️ Dataset Management")
+with st.sidebar.expander("Update / Upload Datasets"):
+    st.write("Upload new GoI csv files to recalculate predictions and retrain models.")
+    
+    # File uploaders
+    crop_file = st.file_uploader("Upload Crop Production CSV", type=["csv"], key="crop")
+    rain_annual_file = st.file_uploader("Upload Annual Rainfall CSV", type=["csv"], key="annual")
+    rain_dist_file = st.file_uploader("Upload District Normal Rainfall CSV", type=["csv"], key="dist")
+    
+    # Save files if uploaded
+    if st.button("⚡ Run ML Pipeline"):
+        saved_any = False
+        os.makedirs("datasets", exist_ok=True)
+        
+        if crop_file is not None:
+            with open("datasets/crop_production.csv", "wb") as f:
+                f.write(crop_file.getbuffer())
+            st.info("Saved crop_production.csv")
+            saved_any = True
+            
+        if rain_annual_file is not None:
+            with open("datasets/rainfall_in_india_1901-2015.csv", "wb") as f:
+                f.write(rain_annual_file.getbuffer())
+            st.info("Saved rainfall_in_india_1901-2015.csv")
+            saved_any = True
+            
+        if rain_dist_file is not None:
+            with open("datasets/districtwise_rainfall_normal.csv", "wb") as f:
+                f.write(rain_dist_file.getbuffer())
+            st.info("Saved districtwise_rainfall_normal.csv")
+            saved_any = True
+            
+        # Run the pipeline
+        trigger_pipeline_run()
+
 df = load_data()
 
+# Load dynamic model performance metrics if available
+metrics = None
+if os.path.exists("model_performance.json"):
+    try:
+        with open("model_performance.json", "r") as f:
+            metrics = json.load(f)
+    except Exception:
+        pass
+
+# 2. Main Filters
 st.sidebar.title("🌾 Filters")
 districts = ["All"] + sorted(df["District_Name"].unique().tolist())
 sel_district = st.sidebar.selectbox("District", districts)
@@ -40,14 +103,15 @@ if sel_season != "All":
 if sel_risk != "All":
     filtered = filtered[filtered["Risk_Level"] == sel_risk]
 
-st.title("🌾 Farmer Decision Intelligence")
-st.caption("Predicting Crop Switching Behaviour in Andhra Pradesh (1997–2014)")
+st.title("🌾 Farmer Decision Intelligence Dashboard")
+st.caption("Predicting Crop Switching Behaviour in Andhra Pradesh (1997–2014) — Dynamic ML Dashboard")
 st.markdown("---")
 
 if filtered.empty:
     st.warning("No records match the selected filters. Try a different combination.")
     st.stop()
 
+# Key KPI Cards
 c1, c2, c3, c4 = st.columns(4)
 c1.metric("Total Records",     f"{len(filtered):,}")
 c2.metric("Switching Rate",    f"{filtered['Switched'].mean()*100:.1f}%")
@@ -122,14 +186,21 @@ with tab2:
 
 with tab3:
     st.subheader("Model Performance Summary")
-    st.caption("Update these values after running Section 6 of the notebook.")
-    model_results = pd.DataFrame({
-        "Model": ["Random Forest", "Decision Tree", "Logistic Regression", "KNN"],
-        "Test Accuracy":        [0.89, 0.84, 0.72, 0.76],
-        "F1 Score":             [0.87, 0.82, 0.68, 0.73],
-        "CV Accuracy (5-fold)": [0.87, 0.81, 0.71, 0.74],
-    })
-    st.dataframe(model_results.set_index("Model"), use_container_width=True)
+    if metrics and "models" in metrics:
+        st.caption("Actual model performance metrics loaded from current run:")
+        model_results = pd.DataFrame(metrics["models"])
+        # Format column names for clarity
+        model_results.columns = [c.replace("_", " ").title() for c in model_results.columns]
+        st.dataframe(model_results.set_index("Model"), use_container_width=True)
+    else:
+        st.caption("Reference values (run the pipeline locally to update):")
+        model_results = pd.DataFrame({
+            "Model": ["Logistic Regression", "Random Forest", "KNN", "Decision Tree"],
+            "Test Accuracy":        [0.8000, 0.8000, 0.7615, 0.7923],
+            "F1 Score":             [0.1875, 0.3810, 0.3111, 0.5263],
+            "CV Accuracy (5-fold)": [0.7874, 0.7535, 0.7196, 0.6103],
+        })
+        st.dataframe(model_results.set_index("Model"), use_container_width=True)
 
     st.subheader("Switching Probability Distribution")
     fig, ax = plt.subplots(figsize=(10, 3.5))
@@ -139,17 +210,21 @@ with tab3:
     ax.set_xlabel("Switch Probability"); ax.set_ylabel("Count")
     ax.legend(); fig.tight_layout(); st.pyplot(fig); plt.close()
 
-    st.subheader("Feature Importance (Reference)")
-    feat_df = pd.DataFrame({
-        "Feature":    ["Area", "Production", "Yield", "annual_rainfall",
-                       "rainfall_deviation", "District_enc", "Season_enc"],
-        "Importance": [0.28, 0.22, 0.19, 0.12, 0.09, 0.06, 0.04]
-    }).sort_values("Importance", ascending=False)
+    st.subheader("Feature Importance (Random Forest)")
+    if metrics and "importances" in metrics:
+        st.caption("Actual feature importances loaded from current run:")
+        feat_df = pd.DataFrame(metrics["importances"]).sort_values("Importance", ascending=False)
+    else:
+        st.caption("Reference values (run the pipeline locally to update):")
+        feat_df = pd.DataFrame({
+            "Feature":    ["Area", "Production", "Yield", "rainfall_deviation", "annual_rainfall", "District_enc", "Season_enc"],
+            "Importance": [0.2291, 0.1776, 0.1715, 0.1261, 0.1107, 0.0960, 0.0886]
+        }).sort_values("Importance", ascending=False)
+        
     fig, ax = plt.subplots(figsize=(8, 4))
     sns.barplot(data=feat_df, x="Importance", y="Feature", palette="viridis", ax=ax)
-    ax.set_title("Random Forest — Feature Importance (reference)")
+    ax.set_title("Random Forest — Feature Importance")
     fig.tight_layout(); st.pyplot(fig); plt.close()
-    st.caption("Replace reference values with actual values from your notebook output.")
 
 with tab4:
     st.subheader("Filtered Dashboard Records")
@@ -164,4 +239,4 @@ with tab4:
                        "filtered_dashboard.csv", "text/csv")
 
 st.markdown("---")
-st.caption("Project: Farmer Decision Intelligence | VINS Internship — IIT Ropar | Data: Government of India (1997–2014)")
+st.caption("Project: Farmer Decision Intelligence | IIT Ropar Agri Internship | Data: Government of India (1997–2014)")
