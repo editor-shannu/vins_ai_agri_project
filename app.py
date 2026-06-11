@@ -144,9 +144,26 @@ with tab1:
             sim_district = st.selectbox("Select District", sorted(le_dist.classes_), key="sim_dist")
             sim_season = st.selectbox("Select Season", sorted(le_seas.classes_), key="sim_seas")
             
+            # Calculate dynamic defaults from actual historical data
+            subset = df[(df["District_Name"] == sim_district) & (df["Season"] == sim_season)]
+            if subset.empty:
+                subset = df[df["District_Name"] == sim_district]
+                
+            if not subset.empty:
+                default_area = float(round(subset["Area"].mean(), 2))
+                default_prod = float(round(subset["Production"].mean(), 2))
+            else:
+                default_area = 15000.0
+                default_prod = 30000.0
+                
+            if np.isnan(default_area) or default_area <= 0:
+                default_area = 1000.0
+            if np.isnan(default_prod) or default_prod <= 0:
+                default_prod = 2000.0
+                
             # Area and production inputs
-            sim_area = st.number_input("Cultivated Area (Hectares)", min_value=1.0, value=15000.0, step=500.0)
-            sim_production = st.number_input("Expected Production (Metric Tons)", min_value=1.0, value=30000.0, step=1000.0)
+            sim_area = st.number_input("Cultivated Area (Hectares)", min_value=1.0, value=default_area, step=500.0)
+            sim_production = st.number_input("Expected Production (Metric Tons)", min_value=1.0, value=default_prod, step=1000.0)
             
             # Normal rainfall indicator
             dist_rows = df[df["District_Name"] == sim_district]
