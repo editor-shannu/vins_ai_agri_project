@@ -130,15 +130,15 @@ flowchart TD
 Raw agricultural statistics are often insufficient for predicting future switches. To capture historical context, scale differences, and combined stresses, we engineered 16 features:
 
 1.  **Log Transforms (Handling Scale):** Large-scale agricultural operations and tiny smallholder farms behave differently. We apply a log transform ($\log(1 + x)$) to `Area`, `Production`, and `Yield` to reduce skewness and stabilize variance:
-    $$\text{Area\_log} = \log(1 + \text{Area}), \quad \text{Production\_log} = \log(1 + \text{Production}), \quad \text{Yield\_log} = \log(1 + \text{Yield})$$
+    $$\text{Area (log)} = \log(1 + \text{Area}), \quad \text{Production (log)} = \log(1 + \text{Production}), \quad \text{Yield (log)} = \log(1 + \text{Yield})$$
 2.  **Lag Features (Capturing Farmer Inertia):** Farmers make decisions based on recent experience. We calculate shift (lag) values representing the previous year's performance:
     *   `Prev_Area`: Cultivated area in the prior year.
     *   `Prev_Yield`: Crop yield in the prior year.
     *   `Area_change`: Current Area minus Prev_Area (expansion or contraction of crop land).
     *   `Yield_change`: Current Yield minus Prev_Yield (decline or growth in soil productivity).
 3.  **Interaction Terms (Combined Stressors):** Environmental impacts are amplified by the scale of cultivation. We interact scale and climate variables to capture combined effects:
-    *   `Area_x_Rain` = $\text{Area} \times \text{annual\_rainfall}$
-    *   `Yield_x_Rain` = $\text{Yield} \times \text{rainfall\_deviation}$
+    *   `Area_x_Rain` = $\text{Area} \times \text{Annual Rainfall}$
+    *   `Yield_x_Rain` = $\text{Yield} \times \text{Rainfall Deviation}$
 
 ---
 
